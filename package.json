@@ -16,7 +16,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "tsc": "npx tsc -p tsconfig.json"
+    "tsc": "npx tsc -p tsconfig.json",
+    "dev": "node src/wip/server.js"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
