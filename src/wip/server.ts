@@ -1,29 +1,31 @@
 // ...existing code...
 import { createServer } from 'http';
 import { promises as fs } from 'fs';
-import { join, resolve, sep, extname } from 'path';
+import { join, extname, resolve, sep } from 'path';
 
 const PORT = Number(process.env.PORT) || 3000;
-// serve from current working dir by default (start node in the folder you want to serve)
-const ROOT = process.env.SERVE_DIR
-  ? resolve(process.env.SERVE_DIR)
-  : process.cwd();
+// Serve from the folder where this file is located (compiled JS side)
+// if you run server.ts with ts-node, __dirname will be the ts-file folder
+const ROOT = resolve(__dirname);
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.htm': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.map': 'application/octet-stream',
 };
 
-function safeJoin(root: string, requestPath: string) {
-  const clean = decodeURIComponent(requestPath).replace(/^\/+/, '');
+function safeResolve(root: string, requestPath: string) {
+  const clean = requestPath.replace(/^\/+/, '');
   const full = resolve(root, clean);
   if (!(full === root || full.startsWith(root + sep)))
     throw new Error('Forbidden');
@@ -32,33 +34,18 @@ function safeJoin(root: string, requestPath: string) {
 
 const server = createServer(async (req, res) => {
   try {
-    if (!req.url || !req.method) throw new Error('Invalid request');
+    const { url, method, headers } = req;
+    if (!url || !method) throw new Error('Invalid request');
 
-    const parsed = new URL(
-      req.url,
-      `http://${req.headers.host || 'localhost'}`
-    );
-    let pathname = parsed.pathname || '/';
+    const parsedUrl = new URL(url, `http://${headers.host || 'localhost'}`);
+    let pathname = parsedUrl.pathname || '/';
 
-    // root -> ./index.html in the working folder
-    let filePath: string;
-    if (pathname === '/') {
-      filePath = join(ROOT, 'index.html');
-    } else {
-      filePath = safeJoin(ROOT, pathname);
-      // if path has no extension, try .html
-      if (!extname(filePath)) {
-        const tryHtml = `${filePath}.html`;
-        try {
-          const stat = await fs.stat(tryHtml);
-          if (stat.isFile()) filePath = tryHtml;
-        } catch {
-          /* ignore */
-        }
-      }
-    }
+    // serve index.html for root
+    if (pathname === '/') pathname = '/index.html';
 
-    console.log('Serve:', pathname, '->', filePath);
+    // Resolve and protect from directory traversal
+    const filePath = safeResolve(ROOT, pathname);
+    console.log('Request Path:', pathname, '->', filePath);
 
     const stat = await fs.stat(filePath).catch(() => null);
     if (!stat || !stat.isFile()) {
@@ -67,13 +54,15 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const contentType =
-      MIME[extname(filePath).toLowerCase()] || 'application/octet-stream';
+    const ext = extname(filePath).toLowerCase();
+    const contentType = MIME[ext] || 'application/octet-stream';
+
     res.writeHead(200, {
       'Content-Type': contentType,
       'Cache-Control': 'no-cache',
       'Access-Control-Allow-Origin': '*',
     });
+
     const data = await fs.readFile(filePath);
     res.end(data);
   } catch (err) {
@@ -88,4 +77,3 @@ server.listen(PORT, 'localhost', () => {
   console.log(`Server running at http://localhost:${PORT}/`);
   console.log(`Serving files from ${ROOT}`);
 });
-// ...existing code...
