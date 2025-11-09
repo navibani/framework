@@ -1,11 +1,17 @@
-import { createServer } from 'http';
+import {
+  createServer,
+  IncomingMessage,
+  OutgoingMessage,
+  ServerResponse,
+} from 'http';
 import { promises as fs } from 'fs';
-import { join, extname, resolve, sep } from 'path';
+import { extname, relative, resolve, sep } from 'path';
 
-const PORT = Number(process.env.PORT) || 3000;
-const ROOT = resolve(__dirname);
+const PORT_NUMBER = Number(process.env.PORT) || 3000;
 
-const MIME: Record<string, string> = {
+const ROOT_DIR = resolve(__dirname);
+
+const FILE_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.htm': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -21,56 +27,145 @@ const MIME: Record<string, string> = {
   '.map': 'application/octet-stream',
 };
 
-function safeResolve(root: string, requestPath: string) {
-  const clean = requestPath.replace(/^\/+/, '');
-  const full = resolve(root, clean);
-  if (!(full === root || full.startsWith(root + sep)))
+class ExtendedError extends Error {
+  constructor(message: string, public cause?: unknown) {
+    super(message);
+    this.name = 'ExtendedError';
+
+    Error.captureStackTrace(this, ExtendedError);
+  }
+}
+
+function validateRequest(req: IncomingMessage) {
+  try {
+    const { url, method, headers } = req;
+
+    const hasUrl = url !== undefined;
+    const hasMethod = method !== undefined;
+    const hasHostHeader = headers.host !== undefined;
+
+    if (!hasUrl) {
+      throw new Error('Request URL is missing');
+    } else if (!hasMethod) {
+      throw new Error('Request method is missing');
+    } else if (!hasHostHeader) {
+      throw new Error('Host header is missing');
+    }
+
+    return { url, method, headers };
+  } catch (err) {
+    throw new ExtendedError('Invalid request', err);
+  }
+}
+
+function protectRootDirCheck(root: string, requestPath: string) {
+  try {
+    const cleanedPath = requestPath.replace(/^\/+/, '');
+    const absolutePath = resolve(root, cleanedPath);
+    const relativePath = relative(root, absolutePath);
+
+    if (relativePath === '' || !relativePath.startsWith('..')) {
+      return absolutePath;
+    }
     throw new Error('Forbidden');
-  return full;
+  } catch (err) {
+    throw new ExtendedError('Root directory protection triggered', err);
+  }
+}
+
+function getPathname(url: string, headers: IncomingMessage['headers']) {
+  try {
+    const parsedUrl = new URL(url, `http://${headers.host || 'localhost'}`);
+    const pathname = parsedUrl.pathname || '/';
+
+    if (pathname === '/') {
+      return '/index.html';
+    }
+
+    return pathname;
+  } catch (err) {
+    throw new ExtendedError('Failed to parse URL', err);
+  }
+}
+
+async function validateFilePath(
+  filePath: string,
+  res: ServerResponse<IncomingMessage> & {
+    req: IncomingMessage;
+  }
+) {
+  try {
+    const stats = await fs.stat(filePath).catch(() => null);
+
+    const hasStat = stats !== null;
+    const isFile = hasStat && stats!.isFile();
+
+    if (isFile === false) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not Found');
+    }
+  } catch (err) {
+    throw new ExtendedError('Failed to validate file path', err);
+  }
+}
+
+function prepareGetHeader(
+  filePath: string,
+  res: ServerResponse<IncomingMessage> & {
+    req: IncomingMessage;
+  }
+) {
+  const ext = extname(filePath).toLowerCase();
+
+  const contentType = FILE_TYPES[ext] || 'application/octet-stream';
+
+  res.writeHead(200, {
+    'Content-Type': contentType,
+    'Cache-Control': 'no-cache',
+    'Access-Control-Allow-Origin': '*',
+  });
+}
+
+async function returnData(
+  filePath: string,
+  res: ServerResponse<IncomingMessage> & {
+    req: IncomingMessage;
+  }
+) {
+  const data = await fs.readFile(filePath);
+
+  res.end(data);
 }
 
 const server = createServer(async (req, res) => {
   try {
-    const { url, method, headers } = req;
-    if (!url || !method) throw new Error('Invalid request');
+    const { url, method, headers } = validateRequest(req);
 
-    const parsedUrl = new URL(url, `http://${headers.host || 'localhost'}`);
-    let pathname = parsedUrl.pathname || '/';
+    const isGetMethod = method.toUpperCase() === 'GET';
 
-    console.log(`${method} ${pathname}`);
+    if (isGetMethod) {
+      const pathname = getPathname(url, headers);
 
-    if (pathname === '/') pathname = '/index.html';
+      const filePath = protectRootDirCheck(ROOT_DIR, pathname);
 
-    const filePath = safeResolve(ROOT, pathname);
-    console.log('Request Path:', pathname, '->', filePath);
+      validateFilePath(filePath, res);
 
-    const stat = await fs.stat(filePath).catch(() => null);
-    if (!stat || !stat.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Not Found');
-      return;
+      prepareGetHeader(filePath, res);
+
+      returnData(filePath, res);
     }
-
-    const ext = extname(filePath).toLowerCase();
-    const contentType = MIME[ext] || 'application/octet-stream';
-
-    res.writeHead(200, {
-      'Content-Type': contentType,
-      'Cache-Control': 'no-cache',
-      'Access-Control-Allow-Origin': '*',
-    });
-
-    const data = await fs.readFile(filePath);
-    res.end(data);
   } catch (err) {
     console.error('Serve error:', err);
+
     const code = (err as Error).message === 'Forbidden' ? 403 : 500;
+
     res.writeHead(code, { 'Content-Type': 'text/plain; charset=utf-8' });
+
     res.end(code === 403 ? 'Forbidden' : 'Internal Server Error');
   }
 });
 
-server.listen(PORT, 'localhost', () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
-  console.log(`Serving files from ${ROOT}`);
+server.listen(PORT_NUMBER, 'localhost', () => {
+  console.log(`Server running at http://localhost:${PORT_NUMBER}/`);
+  console.log(`Serving files from ${ROOT_DIR}`);
 });
