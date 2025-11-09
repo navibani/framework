@@ -1,11 +1,8 @@
-// ...existing code...
 import { createServer } from 'http';
 import { promises as fs } from 'fs';
 import { join, extname, resolve, sep } from 'path';
 
 const PORT = Number(process.env.PORT) || 3000;
-// Serve from the folder where this file is located (compiled JS side)
-// if you run server.ts with ts-node, __dirname will be the ts-file folder
 const ROOT = resolve(__dirname);
 
 const MIME: Record<string, string> = {
@@ -40,10 +37,10 @@ const server = createServer(async (req, res) => {
     const parsedUrl = new URL(url, `http://${headers.host || 'localhost'}`);
     let pathname = parsedUrl.pathname || '/';
 
-    // serve index.html for root
+    console.log(`${method} ${pathname}`);
+
     if (pathname === '/') pathname = '/index.html';
 
-    // Resolve and protect from directory traversal
     const filePath = safeResolve(ROOT, pathname);
     console.log('Request Path:', pathname, '->', filePath);
 
