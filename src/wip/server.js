@@ -28,7 +28,7 @@ class ExtendedError extends Error {
         Error.captureStackTrace(this, ExtendedError);
     }
 }
-function validateRequest(req) {
+const server = (0, http_1.createServer)(async (req, res) => {
     try {
         const { url, method, headers } = req;
         const hasUrl = url !== undefined;
@@ -43,76 +43,36 @@ function validateRequest(req) {
         else if (!hasHostHeader) {
             throw new Error('Host header is missing');
         }
-        return { url, method, headers };
-    }
-    catch (err) {
-        throw new ExtendedError('Invalid request', err);
-    }
-}
-function protectRootDirCheck(root, requestPath) {
-    try {
-        const cleanedPath = requestPath.replace(/^\/+/, '');
-        const absolutePath = (0, path_1.resolve)(root, cleanedPath);
-        const relativePath = (0, path_1.relative)(root, absolutePath);
-        if (relativePath === '' || !relativePath.startsWith('..')) {
-            return absolutePath;
-        }
-        throw new Error('Forbidden');
-    }
-    catch (err) {
-        throw new ExtendedError('Root directory protection triggered', err);
-    }
-}
-function getPathname(url, headers) {
-    try {
-        const parsedUrl = new URL(url, `http://${headers.host || 'localhost'}`);
-        const pathname = parsedUrl.pathname || '/';
-        if (pathname === '/') {
-            return '/index.html';
-        }
-        return pathname;
-    }
-    catch (err) {
-        throw new ExtendedError('Failed to parse URL', err);
-    }
-}
-async function validateFilePath(filePath, res) {
-    try {
-        const stats = await fs_1.promises.stat(filePath).catch(() => null);
-        const hasStat = stats !== null;
-        const isFile = hasStat && stats.isFile();
-        if (isFile === false) {
-            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-            res.end('Not Found');
-        }
-    }
-    catch (err) {
-        throw new ExtendedError('Failed to validate file path', err);
-    }
-}
-function prepareGetHeader(filePath, res) {
-    const ext = (0, path_1.extname)(filePath).toLowerCase();
-    const contentType = FILE_TYPES[ext] || 'application/octet-stream';
-    res.writeHead(200, {
-        'Content-Type': contentType,
-        'Cache-Control': 'no-cache',
-        'Access-Control-Allow-Origin': '*',
-    });
-}
-async function returnData(filePath, res) {
-    const data = await fs_1.promises.readFile(filePath);
-    res.end(data);
-}
-const server = (0, http_1.createServer)(async (req, res) => {
-    try {
-        const { url, method, headers } = validateRequest(req);
         const isGetMethod = method.toUpperCase() === 'GET';
         if (isGetMethod) {
-            const pathname = getPathname(url, headers);
-            const filePath = protectRootDirCheck(ROOT_DIR, pathname);
-            validateFilePath(filePath, res);
-            prepareGetHeader(filePath, res);
-            returnData(filePath, res);
+            const formattedUrl = new URL(url, `http://${headers.host || 'localhost'}`);
+            const parsedPathname = formattedUrl.pathname || '/';
+            const pathname = parsedPathname === '/' ? '/index.html' : parsedPathname;
+            const cleanedPath = pathname.replace(/^\/+/, '');
+            const absolutePath = (0, path_1.resolve)(ROOT_DIR, cleanedPath);
+            const relativePath = (0, path_1.relative)(ROOT_DIR, absolutePath);
+            if (relativePath === '' || !relativePath.startsWith('..')) {
+                const filePath = absolutePath;
+                const stats = await fs_1.promises.stat(filePath).catch(() => null);
+                const hasStat = stats !== null;
+                const isFile = hasStat && stats.isFile();
+                if (isFile === false) {
+                    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                    res.end('Not Found');
+                }
+                const ext = (0, path_1.extname)(filePath).toLowerCase();
+                const contentType = FILE_TYPES[ext] || 'application/octet-stream';
+                res.writeHead(200, {
+                    'Content-Type': contentType,
+                    'Cache-Control': 'no-cache',
+                    'Access-Control-Allow-Origin': '*',
+                });
+                const data = await fs_1.promises.readFile(filePath);
+                res.end(data);
+            }
+            else {
+                throw new Error('Forbidden');
+            }
         }
     }
     catch (err) {
