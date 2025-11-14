@@ -3,33 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = require("http");
 const fs_1 = require("fs");
 const path_1 = require("path");
+const env_1 = require("./env");
 const PORT_NUMBER = Number(process.env.PORT) || 3000;
 const ROOT_DIR = (0, path_1.resolve)(__dirname);
-const FILE_TYPES = {
-    '.html': 'text/html; charset=utf-8',
-    '.htm': 'text/html; charset=utf-8',
-    '.css': 'text/css; charset=utf-8',
-    '.js': 'application/javascript; charset=utf-8',
-    '.mjs': 'application/javascript; charset=utf-8',
-    '.json': 'application/json; charset=utf-8',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.map': 'application/octet-stream',
-};
-class ExtendedError extends Error {
-    constructor(message, cause) {
-        super(message);
-        this.cause = cause;
-        this.name = 'ExtendedError';
-        Error.captureStackTrace(this, ExtendedError);
-    }
-}
 const server = (0, http_1.createServer)(async (req, res) => {
     try {
+        (0, env_1.loadEnv)();
+        if (process.env.FILE_TYPES === undefined) {
+            throw new Error('FILE_TYPES environment variable is not defined');
+        }
+        const FILE_TYPES = JSON.parse(process.env.FILE_TYPES);
         const { url, method, headers } = req;
         const hasUrl = url !== undefined;
         const hasMethod = method !== undefined;

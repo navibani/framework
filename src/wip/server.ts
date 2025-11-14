@@ -1,29 +1,24 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { promises as fs } from 'fs';
 import { extname, relative, resolve } from 'path';
+import { loadEnv } from './env';
 
 const PORT_NUMBER = Number(process.env.PORT) || 3000;
 
 const ROOT_DIR = resolve(__dirname);
 
-const FILE_TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.htm': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'application/javascript; charset=utf-8',
-  '.mjs': 'application/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.map': 'application/octet-stream',
-};
-
 const server = createServer(async (req, res) => {
   try {
+    loadEnv();
+
+    if (process.env.FILE_TYPES === undefined) {
+      throw new Error('FILE_TYPES environment variable is not defined');
+    }
+
+    const FILE_TYPES: Record<string, string> = JSON.parse(
+      process.env.FILE_TYPES
+    );
+
     const { url, method, headers } = req;
     const hasUrl = url !== undefined;
     const hasMethod = method !== undefined;
