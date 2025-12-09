@@ -1,0 +1,12 @@
+Name: Error
+Message: This is a test error
+Stack: Error: This is a test error
+    at test (file:///C:/Users/navra/Documents/Code/framework/src/tools/wip.ts:45:13)
+    at Object.test (file:///C:/Users/navra/Documents/Code/framework/src/tools/wip.ts:11:24)
+    at file:///C:/Users/navra/Documents/Code/framework/src/tools/wip.ts:52:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:377:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:691:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+String: Error: This is a test error
+Date: 2025-12-09T22:43:53.554Z
+
