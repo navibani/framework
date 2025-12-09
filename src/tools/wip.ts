@@ -1,5 +1,9 @@
 import fs from 'fs';
 
+type AppFunctions = {
+  test: () => void;
+};
+
 function handleErrors(exportFunctions: { [key: string]: (args?: any) => any }) {
   const keyPair = Object.entries(exportFunctions);
 
@@ -34,13 +38,13 @@ function handleErrors(exportFunctions: { [key: string]: (args?: any) => any }) {
         }
       },
     };
-  }, {} as { [key: string]: (args?: any) => Promise<any> });
+  }, {} as AppFunctions);
 
   return reducedFn;
 }
 
 export default function app() {
-  const exportFunctions = {
+  const exportFunctions: AppFunctions = {
     test: () => {
       throw new Error('This is a test error');
     },
@@ -49,4 +53,6 @@ export default function app() {
   return handleErrors(exportFunctions);
 }
 
-app().test();
+const test = app();
+
+console.log(test);
