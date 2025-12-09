@@ -1,18 +1,29 @@
-async function handleError<Args, Res>({
-  process,
-  args,
-}: {
-  process: (args: Args) => Promise<Res>;
-  args: Args;
-}): Promise<Res | void> {
-  try {
-    return await process(args);
-  } catch (error) {
-    console.error('An error occurred:', error);
-    return;
-  }
+function handleErrors(exportFunctions: { [key: string]: (args?: any) => any }) {
+  const keyPair = Object.entries(exportFunctions);
+
+  const reducedFn = keyPair.reduce((acc, [key, fn]) => {
+    return {
+      ...acc,
+      [key]: async (args?: any) => {
+        try {
+          return await fn(args);
+        } catch (error) {
+          console.error(`Error in function ${key}:`, error);
+          throw error;
+        }
+      },
+    };
+  });
+
+  return reducedFn;
 }
 
 export default async function app() {
-  return {};
+  const exportFunctions = {
+    test: () => {
+      console.log('Test function executed');
+    },
+  };
+
+  return handleErrors(exportFunctions);
 }
