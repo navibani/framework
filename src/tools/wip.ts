@@ -1,18 +1,20 @@
-function getState<state>(state: state) {
-  return state;
-}
-
-function setState<state>(data: state, state: state) {
-  state = data;
-}
-
 function createState<state>(data: state) {
   let state: state = data;
 
   return {
-    getState: getState<state>(state),
-    setState: (data: state) => setState<state>(data, state),
+    getState: () => {
+      return state;
+    },
+    setState: (data: state) => {
+      state = data;
+    },
   };
+}
+
+function createErrorHandler() {
+  const state = createState<Error | null>(null);
+
+  return {};
 }
 
 export function createApp() {
