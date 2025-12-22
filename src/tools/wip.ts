@@ -1,24 +1,31 @@
-function getState<State>(state: State) {
+type Action = <Props, Result>(
+  props?: Props | undefined | void
+) => Result | Promise<Result> | void;
+
+function getActions<State>(state: State) {
   return state;
 }
 
-function setState<State>(state: State, data: State) {
-  state = data;
-}
-
-function createState<State>(data: State) {
-  let state: State = data;
-
-  return {
-    getState: () => getState(state),
-    setState: (data: State) => setState(state, data),
+function addAction<State, Action>(state: State, action: Action) {
+  state = {
+    ...state,
+    action,
   };
 }
 
-function createErrorHandler() {
+function createActions() {
+  let state = {};
+
+  return {
+    getActions: getActions(state),
+    addAction: (action: Action) => addAction(state, action),
+  };
+}
+
+function createApp() {
+  const actions = createActions();
+
   return {};
 }
 
-export function createApp() {
-  return {};
-}
+const app = createApp();
