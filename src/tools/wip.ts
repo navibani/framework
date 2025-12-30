@@ -17,46 +17,35 @@ function handleActions<Actions>(actions: Actions) {
   return wrappedActions;
 }
 
-function addAction<Actions>(
-  actions: Actions,
-  action: <Args, Result>(args?: Args) => Result | Promise<Result>
-) {
-  actions = { ...actions, action };
-}
+function createApp<Actions>(actions: Actions) {
+  const isObject = typeof actions === 'object';
 
-function createApp() {
-  let actions = {};
+  if (!isObject) {
+    throw new Error('Application actions are not properly formatted.');
+  }
 
   const wrappedActions = handleActions<typeof actions>(actions);
 
-  return {
-    ...wrappedActions,
-    addAction: <Action>(key: string, action: Action) => {
-      actions = {
-        ...actions,
-        [key]: action,
-      };
-
-      console.log(actions);
-    },
-  };
+  return { ...wrappedActions };
 }
 
 // test area
 
-function test1() {
-  console.log('basic test');
-}
-function test2(args: string) {
-  console.log(args);
-  return args;
-}
-function test3(args: {}) {
-  throw new Error('Test');
-}
+const actions = {
+  test1: () => {
+    console.log('basic test');
+  },
+  test2: (args: string) => {
+    console.log(args);
+    return args;
+  },
+  test3: (args: {}) => {
+    throw new Error('Test');
+  },
+};
 
-const testApp = createApp();
+const testApp = createApp<typeof actions>(actions);
 
-testApp.addAction<typeof test1>('Test 1', test1);
-
-testApp.addAction<typeof test2>('test 2', test2);
+testApp.test1();
+testApp.test2('test 2');
+testApp.test3({});
