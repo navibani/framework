@@ -1,3 +1,3 @@
-function createApp() {
+function createActions() {
   return {};
 }
