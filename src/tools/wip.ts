@@ -1,3 +1,5 @@
+import test from 'node:test';
+
 function handleActions<Actions>(actions: Actions) {
   const actionsList = Object.entries(actions as object);
 
@@ -17,19 +19,20 @@ function handleActions<Actions>(actions: Actions) {
   return wrappedActions;
 }
 
-function createApp<Actions>(actions: Actions) {
-  const isObject = typeof actions === 'object';
+function createApp() {
+  let actions = {};
 
-  if (!isObject) {
-    throw new Error('Application actions are not properly formatted.');
-  }
+  return {
+    addAction: <Action>(key: string, action: Action) => {
+      const newActions = {
+        ...(actions as typeof actions),
+        [key]: action as Action,
+      };
 
-  const wrappedActions = handleActions<typeof actions>(actions);
-
-  return { ...wrappedActions };
+      actions = newActions as typeof newActions;
+    },
+  };
 }
-
-// test area
 
 const actions = {
   test1: () => {
@@ -44,7 +47,9 @@ const actions = {
   },
 };
 
-const testApp = createApp<typeof actions>(actions);
+const testApp = createApp();
+
+testApp.addAction<typeof actions.test1>('Test 1', actions.test1);
 
 testApp.test1();
 testApp.test2('test 2');
