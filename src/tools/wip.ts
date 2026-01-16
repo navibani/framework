@@ -59,7 +59,11 @@ function createHandler({
                   item.stack === definition.stack &&
                   item.cause === definition.cause;
 
-                return isMatch ? { ...item, reports: item.reports + 1 } : item;
+                const data = isMatch
+                  ? { ...item, reports: item.reports + 1 }
+                  : item;
+
+                return { ...previous, data };
               }, {})
             : [...content, { ...definition, reports: 1 }];
 
