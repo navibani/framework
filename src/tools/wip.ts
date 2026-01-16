@@ -23,6 +23,8 @@ function createHandler({
               ? ((error as Error).stack as string)
               : 'Unknown stack trace.',
             cause: String(error),
+            reports: 1,
+            date: String([new Date().toISOString()]),
           };
 
           const hasDir = existsSync('./dump');
