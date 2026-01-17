@@ -24,7 +24,7 @@ function createHandler({
               : 'Unknown stack trace.',
             cause: String(error),
             reports: 1,
-            date: String([new Date().toISOString()]),
+            date: [new Date()],
           };
 
           const hasDir = existsSync('./dump');
@@ -41,38 +41,40 @@ function createHandler({
 
           const data = readFileSync('./dump/error.txt', 'utf-8');
 
-          const content: (typeof definition & { reports: number })[] =
-            JSON.parse(data);
+          const content: (typeof definition)[] = JSON.parse(data);
 
-          const hasDuplicate = content.reduce((previous, item) => {
-            return !previous
-              ? item.name === definition.name &&
-                  item.message === definition.message &&
-                  item.stack === definition.stack &&
-                  item.cause === definition.cause
-              : true;
-          }, false);
+          // ...
 
-          const newContent = hasDuplicate
-            ? content.reduce((previous, item) => {
+          const findDuplicate = content.find((item) => {
+            return (
+              item.name === definition.name &&
+              item.message === definition.message &&
+              item.stack === definition.stack &&
+              item.cause === definition.cause
+            );
+          });
+
+          const hasNoDuplicate = findDuplicate === undefined;
+
+          const newData = hasNoDuplicate
+            ? [...content, definition]
+            : content.map((item) => {
                 const isMatch =
                   item.name === definition.name &&
                   item.message === definition.message &&
                   item.stack === definition.stack &&
                   item.cause === definition.cause;
 
-                const data = isMatch
-                  ? { ...item, reports: item.reports + 1 }
-                  : item;
+                const newItem = {
+                  ...item,
+                  reports: isMatch ? item.reports + 1 : item.reports,
+                  date: isMatch ? [...item.date, new Date()] : item.date,
+                };
 
-                return { ...previous, data };
-              }, {})
-            : [...content, { ...definition, reports: 1 }];
+                return newItem;
+              });
 
-          writeFileSync(
-            './dump/error.txt',
-            JSON.stringify(newContent, null, 2)
-          );
+          writeFileSync('./dump/error.txt', JSON.stringify(newData, null, 2));
         }
       },
     };
