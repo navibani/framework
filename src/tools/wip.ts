@@ -8,9 +8,9 @@ function createHandler({
   return Object.entries(actions).reduce((previous, [key, action]) => {
     return {
       ...previous,
-      [key]: async () => {
+      [key]: async (...args: any[]) => {
         try {
-          return await action();
+          return await action(...args);
         } catch (error) {
           const isError = error instanceof Error;
 
@@ -42,8 +42,6 @@ function createHandler({
           const data = readFileSync('./dump/error.txt', 'utf-8');
 
           const content: (typeof definition)[] = JSON.parse(data);
-
-          // ...
 
           const findDuplicate = content.find((item) => {
             return (
@@ -85,7 +83,7 @@ function createActions(): { [key: string]: (...args: any[]) => any } {
   return {};
 }
 
-function createApp() {
+function createApp({ config }: { config: {} }) {
   const actions = createActions();
 
   return {
