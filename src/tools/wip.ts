@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
-function file() {
+function createFile() {
   function validatePath(dir: string, file: string) {
     const hasDir = existsSync(dir);
 
@@ -38,7 +38,7 @@ function file() {
   };
 }
 
-function errors() {
+function createErrors() {
   function wrapActions() {}
 
   return {
@@ -73,7 +73,7 @@ function createHandler({
             date: [new Date()],
           };
 
-          const data = file().read('./dump', 'error.txt');
+          const data = createFile().read('./dump', 'error.txt');
 
           const content: (typeof definition)[] = JSON.parse(data);
 
@@ -106,21 +106,28 @@ function createHandler({
                 return newItem;
               });
 
-          file().write('./dump', 'error.txt', JSON.stringify(newData, null, 2));
+          createFile().write(
+            './dump',
+            'error.txt',
+            JSON.stringify(newData, null, 2),
+          );
         }
       },
     };
   }, {});
 }
 
-function createActions(): { [key: string]: (...args: any[]) => any } {
-  return {};
+function createActions(): {
+  [key: string]: { [key: string]: (...args: any[]) => any };
+} {
+  const file = createFile();
+  const errors = createErrors();
+
+  return { file, errors };
 }
 
 function createApp({ config }: { config: {} }) {
   const actions = createActions();
 
-  return {
-    ...createHandler({ actions }),
-  };
+  return {};
 }
