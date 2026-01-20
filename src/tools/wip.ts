@@ -1,50 +1,49 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
-function writeFile({
-  dir,
-  file,
-  data,
-}: {
-  dir: string;
-  file: string;
-  data: string;
-}) {
-  const hasDir = existsSync(dir);
+function file() {
+  function validatePath(dir: string, file: string) {
+    const hasDir = existsSync(dir);
 
-  if (!hasDir) {
-    mkdirSync(dir, { recursive: true });
+    if (!hasDir) {
+      mkdirSync(dir, { recursive: true });
+    }
+
+    const filePath = path.join(dir, file);
+
+    const hasFile = existsSync(filePath);
+
+    if (!hasFile) {
+      writeFileSync(filePath, '');
+    }
+
+    return path.join(dir, file);
   }
 
-  const filePath = path.join(dir, file);
+  function write(dir: string, file: string, data: string) {
+    const filePath = validatePath(dir, file);
 
-  writeFileSync(filePath, data);
+    writeFileSync(filePath, data);
+  }
+
+  function read(dir: string, file: string) {
+    const filePath = validatePath(dir, file);
+
+    return readFileSync(filePath, 'utf-8');
+  }
+
+  return {
+    write,
+    read,
+  };
 }
 
-function readFile({
-  dir,
-  file,
-  defaultData,
-}: {
-  dir: string;
-  file: string;
-  defaultData: string;
-}) {
-  const hasDir = existsSync(dir);
+function errors() {
+  function wrapActions() {}
 
-  if (!hasDir) {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  const filePath = path.join(dir, file);
-
-  const hasFile = existsSync(filePath);
-
-  if (!hasFile) {
-    writeFileSync(filePath, defaultData);
-  }
-
-  return readFileSync(filePath, 'utf-8');
+  return {
+    wrapActions,
+  };
 }
 
 function createHandler({
@@ -74,11 +73,7 @@ function createHandler({
             date: [new Date()],
           };
 
-          const data = readFile({
-            dir: './dump',
-            file: 'error.txt',
-            defaultData: JSON.stringify([]),
-          });
+          const data = file().read('./dump', 'error.txt');
 
           const content: (typeof definition)[] = JSON.parse(data);
 
@@ -111,11 +106,7 @@ function createHandler({
                 return newItem;
               });
 
-          writeFile({
-            dir: './dump/',
-            file: 'error.txt',
-            data: JSON.stringify(newData, null, 2),
-          });
+          file().write('./dump', 'error.txt', JSON.stringify(newData, null, 2));
         }
       },
     };
