@@ -1,4 +1,51 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import path from 'path';
+
+function writeFile({
+  dir,
+  file,
+  data,
+}: {
+  dir: string;
+  file: string;
+  data: string;
+}) {
+  const hasDir = existsSync(dir);
+
+  if (!hasDir) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  const filePath = path.join(dir, file);
+
+  writeFileSync(filePath, data);
+}
+
+function readFile({
+  dir,
+  file,
+  defaultData,
+}: {
+  dir: string;
+  file: string;
+  defaultData: string;
+}) {
+  const hasDir = existsSync(dir);
+
+  if (!hasDir) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  const filePath = path.join(dir, file);
+
+  const hasFile = existsSync(filePath);
+
+  if (!hasFile) {
+    writeFileSync(filePath, defaultData);
+  }
+
+  return readFileSync(filePath, 'utf-8');
+}
 
 function createHandler({
   actions,
@@ -27,19 +74,11 @@ function createHandler({
             date: [new Date()],
           };
 
-          const hasDir = existsSync('./dump');
-
-          if (!hasDir) {
-            mkdirSync('./dump', { recursive: true });
-          }
-
-          const hasFile = existsSync('./dump/error.txt');
-
-          if (!hasFile) {
-            writeFileSync('./dump/error.txt', JSON.stringify([]));
-          }
-
-          const data = readFileSync('./dump/error.txt', 'utf-8');
+          const data = readFile({
+            dir: './dump',
+            file: 'error.txt',
+            defaultData: JSON.stringify([]),
+          });
 
           const content: (typeof definition)[] = JSON.parse(data);
 
@@ -72,7 +111,11 @@ function createHandler({
                 return newItem;
               });
 
-          writeFileSync('./dump/error.txt', JSON.stringify(newData, null, 2));
+          writeFile({
+            dir: './dump/',
+            file: 'error.txt',
+            data: JSON.stringify(newData, null, 2),
+          });
         }
       },
     };
