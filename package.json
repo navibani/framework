@@ -2,10 +2,10 @@
   "name": "framework",
   "version": "1.0.0",
   "description": "",
-  "main": "",
+  "main": "./src/server.js",
   "scripts": {
     "build": "tsc",
-    "start": ""
+    "start": "node ./src/server.js"
   },
   "keywords": [],
   "author": "",
