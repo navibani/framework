@@ -1,0 +1,15 @@
+<template>
+  <style>
+    p {
+      color: red;
+    }
+  </style>
+  <div>
+    <p>This is a component.</p>
+    <slot>This is the default for slot</slot>
+    <slot name="test">This is the default for a named test.</slot>
+  </div>
+  <script>
+    console.log('Component has been loaded.');
+  </script>
+</template>

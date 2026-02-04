@@ -8,6 +8,14 @@
   </head>
   <body>
     <p>This is a test html document.</p>
+    <test-component
+      ><p slot="test">Testing named slot working.</p>
+      Testing slot</test-component
+    >
     <script src="./script.js"></script>
+    <script src="./loadComponent.js"></script>
+    <script>
+      registerWebComponent('test-component', './component.html');
+    </script>
   </body>
 </html>
