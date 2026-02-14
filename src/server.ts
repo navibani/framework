@@ -5,10 +5,16 @@ import path from 'path';
 const PORT = 3000;
 
 const server = http.createServer((req, res) => {
-  const filePath = path.join(
-    './src/',
-    req.url === '/' ? './index.html' : req.url,
-  );
+  if (!req.url) {
+    throw new Error('Request undefined.');
+  }
+  
+  const fileExtension = path.extname(req.url);
+
+  const filePath =
+    fileExtension === '.js'
+      ? path.join('./dump/', req.url === '/' ? './index.html' : req.url)
+      : path.join('./src/', req.url === '/' ? './index.html' : req.url);
 
   const ext = path.extname(filePath);
 

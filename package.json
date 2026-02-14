@@ -6,9 +6,12 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node ./src/server.js"
+    "start": "node ./dump/server.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.2.2"
+  }
 }
