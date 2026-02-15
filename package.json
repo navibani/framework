@@ -2,11 +2,11 @@
   "name": "framework",
   "version": "1.0.0",
   "description": "",
-  "main": "./src/server.js",
+  "main": "src/dump/typescript/server.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node ./dump/server.js"
+    "start": "node src/dump/typescript/server.js"
   },
   "keywords": [],
   "author": "",

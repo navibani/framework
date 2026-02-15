@@ -2,18 +2,13 @@
   "compilerOptions": {
     "module": "ESNext",
     "target": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "outDir": "./dump",
-    "rootDir": "./src",
+    "outDir": "src/dump/typescript",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": false,
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true
   },
   "include": ["src/**/*", "src/dev.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["src/dump/**/*"]
 }

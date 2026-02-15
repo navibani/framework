@@ -8,13 +8,16 @@ const server = http.createServer((req, res) => {
   if (!req.url) {
     throw new Error('Request undefined.');
   }
-  
+
   const fileExtension = path.extname(req.url);
 
   const filePath =
     fileExtension === '.js'
-      ? path.join('./dump/', req.url === '/' ? './index.html' : req.url)
-      : path.join('./src/', req.url === '/' ? './index.html' : req.url);
+      ? path.join(
+          'src/dump/typescript',
+          req.url === '/' ? './index.html' : req.url
+        )
+      : path.join('src/', req.url === '/' ? './index.html' : req.url);
 
   const ext = path.extname(filePath);
 
