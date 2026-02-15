@@ -1,10 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="../styles/styles.css" />
   </head>
   <body>
     <p>This is a test html document.</p>
@@ -12,8 +12,8 @@
       ><p slot="test">Testing named slot working.</p>
       Testing slot</test-component
     >
-    <script src="./script.js"></script>
-    <script src="./loadComponent.js"></script>
+    <script src="../scripts/script.ts"></script>
+    <script src="../components/component.html"></script>
     <script>
       registerWebComponent('test-component', './component.html');
     </script>
