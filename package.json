@@ -1,0 +1,14 @@
+{
+  "name": "framework-attempt",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "My personal attempt as a non-software programmer, coder or a person with no idea on how to even attempt this.",
+  "scripts": {
+   
+  },
+  "devDependencies": {
+    "typescript": "^5.x.x",
+    "vscode-languageserver": "^9.x.x",
+    "vscode-languageserver-textdocument": "^1.x.x"
+  }
+}
