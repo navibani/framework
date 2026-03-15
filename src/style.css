@@ -3,3 +3,9 @@
             margin: 0;
             box-sizing: border-box;
         }
+
+        iframe {
+             border: none;
+            outline: none;
+            overflow: hidden;
+        }
