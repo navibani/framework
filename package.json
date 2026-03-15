@@ -1,14 +1,19 @@
 {
-  "name": "framework-attempt",
-  "version": "0.0.0",
+  "name": "",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/index.js",
   "type": "module",
-  "description": "My personal attempt as a non-software programmer, coder or a person with no idea on how to even attempt this.",
   "scripts": {
-   
+    "build": "npx tsc",
+    "start": "",
+    "dev": ""
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "typescript": "^5.x.x",
-    "vscode-languageserver": "^9.x.x",
-    "vscode-languageserver-textdocument": "^1.x.x"
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
   }
 }
