@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "npx tsc",
-    "start": "",
+    "start": "node --env-file=.env src/server.js",
     "dev": ""
   },
   "keywords": [],

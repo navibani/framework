@@ -1,1 +1,1 @@
-console.log("Head script.")
+console.log('Head script.');

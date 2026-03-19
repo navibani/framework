@@ -1,1 +1,1 @@
-console.log("Body script.")
+console.log('Body script.');
