@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./style.css"></link>
+    <script src="./head.js"></script>
+</head>
+<body>
+    <iframe src="./component.html" onload="this.style.height=this.contentWindow.document.body.scrollHeight+'px';"></iframe>
+    <main>
+        <nav><a href="/">Home</a><a href="./about.html">About</a></nav>
+        <h1>Index Page</h1>
+        <article>
+            <h2>Article</h2>
+            <p>Article text.</p>
+        </article>
+    </main>
+    <footer>
+        <span>Footer</span>
+    </footer>
+    <script src="./body.js"></script>
+</body>
+</html>
