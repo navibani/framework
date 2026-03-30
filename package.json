@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "npx tsc",
-    "start": "node --env-file=.env src/server.js",
-    "dev": ""
+    "start": "node src/app.js",
+    "dev": "npm run build && npm run start"
   },
   "keywords": [],
   "author": "",

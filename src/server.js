@@ -1,80 +1,96 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import getEnv from './env.js';
-
-function parseUrl(url, absoluteUrl) {
-  const fullUrl = new URL(url, absoluteUrl);
-
-  const urlPath = fullUrl.pathname;
-  const urlParamaters = fullUrl.searchParams;
-
-  return { urlPath, urlParamaters };
+import { fileURLToPath } from 'node:url';
+export default function createApplication() {
+    function createEnv() {
+        function load() {
+            const envPath = '.env';
+            const cwd = process.cwd();
+            const characterEncode = 'utf-8';
+            const lineEnd = '\n';
+            const localHost = 'http://localhost';
+            const objectType = '{}';
+            const filePath = path.resolve(cwd, envPath);
+            const pathExists = fs.existsSync(filePath);
+            if (!pathExists) {
+                const message = `File cannot be found at ${envPath}.`;
+                throw new Error(message);
+            }
+            const fileContent = fs.readFileSync(filePath, characterEncode);
+            const fileLines = fileContent.split(lineEnd);
+            fileLines.forEach((line) => {
+                const emptyLine = '';
+                const commentDelimiter = '#';
+                const keyValueDelimiter = '=';
+                const trimmedLine = line.trim();
+                const isEmptyLine = trimmedLine === emptyLine;
+                const isCommentLine = trimmedLine.startsWith(commentDelimiter);
+                const isInvalidLine = isEmptyLine || isCommentLine;
+                if (!isInvalidLine) {
+                    const commentRegex = /^['"]|['"]$/g;
+                    const [key, ...values] = trimmedLine.split(keyValueDelimiter);
+                    const trimmedKey = key.trim();
+                    const value = values.join(keyValueDelimiter);
+                    const trimmedValue = value.trim();
+                    const hasKey = trimmedKey !== emptyLine;
+                    if (hasKey) {
+                        const cleanedValues = trimmedValue.replace(commentRegex, emptyLine);
+                        process.env[trimmedKey] = cleanedValues;
+                    }
+                }
+            });
+            const port = Number(process.env.PORT) || 3000;
+            const absoluteUrl = process.env.ABSOLUTE_URL || localHost;
+            const mimeTypes = JSON.parse(process.env.MIME_TYPES || objectType);
+            return { port, absoluteUrl, mimeTypes };
+        }
+        return {
+            load,
+        };
+    }
+    function createServer() {
+        function create() {
+            const httpServer = http.createServer((request, response) => {
+                const homePath = '/';
+                const homeFileName = '/index.html';
+                const emptyLine = '';
+                const streamType = 'application/octet-stream';
+                const notFoundCode = 404;
+                const plainType = { 'Content-Type': 'text/plain' };
+                const notFoundMessage = '404 Not Found';
+                const successCode = 200;
+                const urlPath = request.url === homePath ? homeFileName : request.url || emptyLine;
+                const filePath = path.join(__dirname, urlPath);
+                const ext = path.extname(filePath).toLowerCase();
+                const contentType = mimeTypes[ext] || streamType;
+                const contentTypeObject = { 'Content-Type': contentType };
+                fs.readFile(filePath, (err, data) => {
+                    if (err) {
+                        response.writeHead(notFoundCode, plainType);
+                        response.end(notFoundMessage);
+                        return;
+                    }
+                    response.writeHead(successCode, contentTypeObject);
+                    response.end(data);
+                });
+            });
+            httpServer.listen(port, () => {
+                const message = `Server running at ${absoluteUrl}:${port}/`;
+                console.log(message);
+            });
+            return httpServer;
+        }
+        return {
+            create,
+        };
+    }
+    const env = createEnv();
+    const server = createServer();
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const { port, absoluteUrl, mimeTypes } = env.load();
+    return {
+        server,
+    };
 }
-
-function buildFileAccess(urlPath, dirPath) {
-  const defaultPath = '/';
-  const defaultFileName = 'index.html';
-
-  const isDefaultPath = urlPath === defaultPath;
-
-  const fileName = isDefaultPath ? defaultFileName : urlPath;
-
-  const filePath = path.join(dirPath, fileName);
-
-  return filePath;
-}
-
-function findFileExtension(filePath, mimeTypes, plainText) {
-  const extname = path.extname(filePath);
-
-  const entension = extname.toLowerCase();
-
-  const contentType = mimeTypes[entension] || plainText;
-
-  return contentType;
-}
-
-function metaDataHandling(err, stats, filePath, mimeTypes, res) {
-  const plainText = 'text/plain';
-  const cannotFindCode = 404;
-  const cannotFindMessage = '404 Not Found';
-
-  if (err || stats.isDirectory()) {
-    res.writeHead(cannotFindCode, { 'Content-Type': plainText });
-    res.end(cannotFindMessage);
-    return;
-  }
-
-  const contentType = findFileExtension(filePath, mimeTypes, plainText);
-
-  res.writeHead(200, {
-    'Content-Type': contentType,
-  });
-
-  fs.createReadStream(filePath).pipe(res);
-}
-
-function serverHandler(req, res, dirPath, absoluteUrl, mimeTypes) {
-  const { urlPath, urlParamaters } = parseUrl(req.url, absoluteUrl);
-
-  const filePath = buildFileAccess(urlPath, dirPath);
-
-  fs.stat(filePath, (err, stats) =>
-    metaDataHandling(err, stats, filePath, mimeTypes, res)
-  );
-}
-
-function startServer() {
-  const { dirPath, port, mimeTypes, absoluteUrl } = getEnv();
-
-  const server = http.createServer((req, res) =>
-    serverHandler(req, res, dirPath, absoluteUrl, mimeTypes)
-  );
-
-  server.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}/`);
-  });
-}
-
-startServer();
