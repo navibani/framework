@@ -17,11 +17,12 @@ function createServer(mimeTypes: Record<string, string>) {
     const plainType = { 'Content-Type': 'text/plain' };
     const notFoundMessage = '404 Not Found';
     const successCode = 200;
+    const clientDir = '../client';
 
     const urlPath =
       request.url === homePath ? homeFileName : request.url || emptyLine;
 
-    const filePath = path.join(__dirname, urlPath);
+    const filePath = path.join(__dirname, clientDir, urlPath);
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = mimeTypes[ext] || streamType;

@@ -1,4 +1,4 @@
-import createApplication from './server.js';
+import createApplication from './lib/server.js';
 
 const app = createApplication();
 

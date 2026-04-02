@@ -25,7 +25,7 @@ function copyAssets(src: string, dest: string): void {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+const projectRoot = join(__dirname, '../..');
 const sourceDir = join(projectRoot, 'src');
 const targetDir = join(projectRoot, 'dist');
 
