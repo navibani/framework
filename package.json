@@ -5,8 +5,8 @@
   "main": "build/index.js",
   "type": "module",
   "scripts": {
-    "build": "npx tsc",
-    "start": "node src/app.js",
+    "build": "tsc && node dist/build.js",
+    "start": "node dist/app.js",
     "dev": "npm run build && npm run start"
   },
   "keywords": [],
