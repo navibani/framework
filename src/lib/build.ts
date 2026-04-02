@@ -1,32 +1,72 @@
 import { fileURLToPath } from 'node:url';
-import { dirname, join, basename } from 'node:path';
-import { existsSync, mkdirSync, cpSync } from 'node:fs';
+import { dirname, join, relative, basename, extname } from 'node:path';
+import { existsSync, mkdirSync, cpSync, readdirSync, statSync } from 'node:fs';
 
-function copyAssets(src: string, dest: string): void {
-  if (!existsSync(dest)) {
-    mkdirSync(dest, { recursive: true });
-  }
+function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
+  if (!existsSync(dirPath)) return [];
+  const files = readdirSync(dirPath);
 
-  console.log(`Copying assets from ${src} to ${dest}...`);
+  files.forEach((file) => {
+    const absolute = join(dirPath, file);
+    if (statSync(absolute).isDirectory()) {
+      getAllFiles(absolute, arrayOfFiles);
+    } else {
+      arrayOfFiles.push(absolute);
+    }
+  });
+  return arrayOfFiles;
+}
 
-  cpSync(src, dest, {
-    recursive: true,
-    filter: (sourcePath: string) => {
-      const fileName = basename(sourcePath);
+function syncProject(srcDir: string, distDir: string): void {
+  const srcFiles = getAllFiles(srcDir);
 
-      const isDirectory = !fileName.includes('.');
-      const isHtml = fileName.endsWith('.html');
-      const isCss = fileName.endsWith('.css');
+  srcFiles.forEach((srcFile) => {
+    const relPath = relative(srcDir, srcFile);
+    const extension = extname(srcFile);
+    const base = basename(srcFile, extension);
+    const dir = dirname(relPath);
 
-      return isDirectory || isHtml || isCss;
-    },
+    if (extension === '.html' || extension === '.css') {
+      const destFile = join(distDir, relPath);
+      const needsUpdate =
+        !existsSync(destFile) ||
+        statSync(srcFile).mtime > statSync(destFile).mtime;
+
+      if (needsUpdate) {
+        console.log(`[ASSET] Syncing: ${relPath}`);
+        mkdirSync(dirname(destFile), { recursive: true });
+        cpSync(srcFile, destFile);
+      }
+    }
+
+    if (extension === '.ts') {
+      const expectedJsPath = join(distDir, dir, `${base}.js`);
+
+      if (!existsSync(expectedJsPath)) {
+        console.warn(
+          `[MISSING] ${relPath} has no compiled JS in dist. Run tsc!`
+        );
+      } else {
+        const tsTime = statSync(srcFile).mtime;
+        const jsTime = statSync(expectedJsPath).mtime;
+
+        if (tsTime > jsTime) {
+          console.warn(
+            `[OUTDATED] ${relPath} is newer than its compiled JS. Run tsc!`
+          );
+        }
+      }
+    }
   });
 }
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '../..');
-const sourceDir = join(projectRoot, 'src');
-const targetDir = join(projectRoot, 'dist');
 
-copyAssets(sourceDir, targetDir);
+const sourceRoot = join(projectRoot, 'src');
+const targetRoot = join(projectRoot, 'dist');
+
+console.log('--- Checking Build Integrity ---');
+syncProject(sourceRoot, targetRoot);
+console.log('--- Check Complete ---');
