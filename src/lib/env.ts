@@ -1,66 +1,62 @@
-import path from 'path';
-import fs from 'fs';
+import fs from 'node:fs';
 
-export default function loadEnv() {
-  const envPath = '.env';
-  const cwd = process.cwd();
-  const characterEncode = 'utf-8';
-  const lineEnd = '\n';
-  const localHost = 'http://localhost';
-  const objectType = '{}';
+function parseData(envData: string) {
+  const newLineChar = /\r?\n/;
+  const keyValueChar = '=';
+  const quoteStripRegex = /^(['"])(.*)\1$/;
+  const valueCaptureRegex = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^#\s]+)/;
 
-  const filePath = path.resolve(cwd, envPath);
-
-  const pathExists = fs.existsSync(filePath);
-
-  if (!pathExists) {
-    const message = `File cannot be found at ${envPath}.`;
-
-    throw new Error(message);
-  }
-
-  const fileContent = fs.readFileSync(filePath, characterEncode);
-
-  const fileLines = fileContent.split(lineEnd);
+  const fileLines = envData.split(newLineChar);
 
   fileLines.forEach((line) => {
-    const emptyLine = '';
-    const commentDelimiter = '#';
-    const keyValueDelimiter = '=';
-
     const trimmedLine = line.trim();
 
-    const isEmptyLine = trimmedLine === emptyLine;
+    if (!trimmedLine || trimmedLine.startsWith('#')) {
+      return;
+    }
 
-    const isCommentLine = trimmedLine.startsWith(commentDelimiter);
+    const [key, ...values] = trimmedLine.split(keyValueChar);
+    const trimmedKey = key.trim();
 
-    const isInvalidLine = isEmptyLine || isCommentLine;
+    if (trimmedKey) {
+      const rawValue = values.join(keyValueChar).trim();
 
-    if (!isInvalidLine) {
-      const commentRegex = /^['"]|['"]$/g;
+      const match = rawValue.match(valueCaptureRegex);
+      let finalValue = match ? match[1] : '';
 
-      const [key, ...values] = trimmedLine.split(keyValueDelimiter);
-      const trimmedKey = key.trim();
-      const value = values.join(keyValueDelimiter);
-      const trimmedValue = value.trim();
+      finalValue = finalValue.replace(quoteStripRegex, '$2');
 
-      const hasKey = trimmedKey !== emptyLine;
-
-      if (hasKey) {
-        const cleanedValues = trimmedValue.replace(commentRegex, emptyLine);
-
-        process.env[trimmedKey] = cleanedValues;
-      }
+      process.env[trimmedKey] = finalValue;
     }
   });
+}
 
-  const port = Number(process.env.PORT) || 3000;
+function evaluateKV() {
+  const defaultDomain = 'http://localhost';
+  const objectType = '{}';
 
-  const absoluteUrl = process.env.ABSOLUTE_URL || localHost;
+  const rawPort = process.env.PORT;
+  const parsedPort = parseInt(rawPort || '', 10);
+  const isValidPort =
+    !Number.isNaN(parsedPort) && parsedPort > 0 && parsedPort <= 65535;
+
+  const port = isValidPort ? parsedPort : 3000;
+
+  const absoluteUrl = process.env.ABSOLUTE_URL || defaultDomain;
 
   const mimeTypes: Record<string, string> = JSON.parse(
     process.env.MIME_TYPES || objectType
   );
 
   return { port, absoluteUrl, mimeTypes };
+}
+
+export default function loadEnv(absoluteEnvPath: string) {
+  if (!fs.existsSync(absoluteEnvPath)) {
+    throw new Error(`File cannot be found at ${absoluteEnvPath}`);
+  }
+
+  const envData = fs.readFileSync(absoluteEnvPath, 'utf-8');
+  parseData(envData);
+  return evaluateKV();
 }
