@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/lib/start.js",
+    "start": "node --env-file=.env build/lib/start.js",
     "dev": "npm run build && npm run start"
   },
   "keywords": [],

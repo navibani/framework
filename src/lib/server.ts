@@ -3,37 +3,51 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export default function createServer(
-  projectRoot: string,
+  clientDir: string,
   mimeTypes: Record<string, string>
 ) {
-  const clientDir = path.join(projectRoot, 'dist', 'client');
-
   const httpServer = http.createServer((request, response) => {
     const homePath = '/';
     const homeFileName = 'index.html';
     const streamType = 'application/octet-stream';
     const notFoundCode = 404;
+    const protectedCode = 403;
     const successCode = 200;
+    const emptyChar = '';
 
-    const urlPath = request.url === homePath ? homeFileName : request.url || '';
+    const urlPath =
+      request.url === homePath ? homeFileName : request.url || emptyChar;
+
     const filePath = path.join(clientDir, urlPath);
 
-    if (!filePath.startsWith(clientDir)) {
-      response.writeHead(403);
-      response.end('Forbidden');
+    const hasPrefix = filePath.startsWith(clientDir);
+
+    if (!hasPrefix) {
+      const message = 'Forbidden';
+
+      response.writeHead(protectedCode);
+      response.end(message);
       return;
     }
 
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = mimeTypes[ext] || streamType;
+    const extension = path.extname(filePath);
+    const isLowerCase = extension.toLowerCase();
+
+    const contentType = mimeTypes[isLowerCase] || streamType;
 
     fs.readFile(filePath, (err, data) => {
       if (err) {
-        response.writeHead(notFoundCode, { 'Content-Type': 'text/plain' });
-        response.end('404 Not Found');
+        const responseConfig = { 'Content-Type': 'text/plain' };
+        const message = '404 Not Found';
+
+        response.writeHead(notFoundCode, responseConfig);
+        response.end(message);
         return;
       }
-      response.writeHead(successCode, { 'Content-Type': contentType });
+
+      const regularConfig = { 'Content-Type': contentType };
+
+      response.writeHead(successCode, regularConfig);
       response.end(data);
     });
   });

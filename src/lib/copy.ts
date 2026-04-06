@@ -6,92 +6,197 @@ import {
   statSync,
   unlinkSync,
 } from 'node:fs';
-import { basename, dirname, extname, join, relative } from 'node:path';
+import { join, relative, extname, dirname, basename } from 'node:path';
 
-function getFileList(dirPath: string, fileList: string[] = []) {
-  if (!existsSync(dirPath)) {
-    console.log(`Error: Path does not exist at ${dirPath}.`);
+function getMtime(path: string): number {
+  const pathExists = existsSync(path);
+
+  if (pathExists) {
+    const pathState = statSync(path);
+    const mTime = pathState.mtime;
+    const actualTime = mTime.getTime();
+
+    return actualTime;
+  } else {
+    return 0;
+  }
+}
+
+function isNewer(src: string, dest: string): boolean {
+  const srcTime = getMtime(src);
+  const destTime = getMtime(dest);
+
+  return srcTime > destTime;
+}
+
+function getFileList(dirPath: string, fileList: string[] = []): string[] {
+  const dirExists = existsSync(dirPath);
+
+  if (!dirExists) {
     return [];
   }
 
-  const fileNames = readdirSync(dirPath);
+  const entries = readdirSync(dirPath);
 
-  fileNames.forEach((fileName) => {
-    const absolutePath = join(dirPath, fileName);
-    const pathStat = statSync(absolutePath);
+  entries.forEach((entry) => {
+    const fullPath = join(dirPath, entry);
 
-    if (pathStat.isDirectory()) {
-      getFileList(absolutePath, fileList);
+    const pathStat = statSync(fullPath);
+    const hasDirectory = pathStat.isDirectory();
+
+    if (hasDirectory) {
+      getFileList(fullPath, fileList);
     } else {
-      fileList.push(absolutePath);
+      fileList.push(fullPath);
     }
   });
 
   return fileList;
 }
-export default function copyFiles(projectRoot: string) {
-  const srcDir = join(projectRoot, 'src');
-  const distDir = join(projectRoot, 'dist');
 
-  const htmlExt = '.html';
-  const cssExt = '.css';
-  const tsExt = '.ts';
-  const jsExt = '.js';
-  const dirSettings = { recursive: true };
+function swapExtension(path: string, newExt: string): string {
+  const extention = extname(path);
 
-  const srcFiles = getFileList(srcDir);
-  srcFiles.forEach((file) => {
-    const relativePath = relative(srcDir, file);
-    const extension = extname(file);
-    const dirName = dirname(relativePath);
-    const baseName = basename(file, extension);
-    const srcTime = statSync(file).mtime.getTime();
+  const extentionLength = extention.length;
 
-    if (extension === htmlExt || extension === cssExt) {
-      const destFile = join(distDir, relativePath);
-      let needsUpdate =
-        !existsSync(destFile) || srcTime > statSync(destFile).mtime.getTime();
+  const sliceStart = 0;
 
-      if (needsUpdate) {
-        mkdirSync(dirname(destFile), dirSettings);
-        cpSync(file, destFile);
-        console.log(`Syncing: ${relativePath}`);
-      }
+  const sliceEnd = sliceStart - extentionLength;
+
+  const newSlice = path.slice(sliceStart, sliceEnd);
+
+  const newFile = newSlice + newExt;
+
+  return newFile;
+}
+
+function isWebFile(path: string): boolean {
+  const webFiles = ['.html', '.css'];
+
+  const fileExtension = extname(path);
+
+  const hasExtension = webFiles.includes(fileExtension);
+
+  return hasExtension;
+}
+
+function isJsFile(path: string): boolean {
+  const jsExtension = '.js';
+
+  const fileExtension = extname(path);
+
+  const hasExtension = fileExtension === jsExtension;
+
+  return hasExtension;
+}
+
+function isTsFile(path: string): boolean {
+  const tsExtension = '.ts';
+
+  const fileExtension = extname(path);
+
+  const hasExtension = fileExtension === tsExtension;
+
+  return hasExtension;
+}
+
+function syncWebFile(file: string, srcDir: string, distDir: string) {
+  const relPath = relative(srcDir, file);
+  const destFile = join(distDir, relPath);
+
+  const distPathExists = existsSync(destFile);
+  const isNew = isNewer(file, destFile);
+
+  if (!distPathExists || isNew) {
+    const dirName = dirname(destFile);
+    const dirConfig = { recursive: true };
+    const message = `Syncing: ${relPath}`;
+
+    mkdirSync(dirName, dirConfig);
+
+    cpSync(file, destFile);
+
+    console.log(message);
+  }
+}
+
+function validateTsCompilation(file: string, srcDir: string, distDir: string) {
+  const jsExtension = '.js';
+  const relPath = relative(srcDir, file);
+  const swappedExtension = swapExtension(relPath, jsExtension);
+  const expectedJs = join(distDir, swappedExtension);
+
+  const distPathExists = existsSync(expectedJs);
+
+  const isNew = isNewer(file, expectedJs);
+
+  const baseName = basename(expectedJs);
+
+  if (!distPathExists) {
+    const message = `Missing JS: ${baseName} (run tsc)`;
+
+    console.warn(message);
+  } else if (isNew) {
+    const message = `Outdated JS: ${baseName} (re-run tsc)`;
+
+    console.warn(message);
+  }
+}
+
+function deleteOrphans(peerPath: string, relPath: string, distFile: string) {
+  const pathExists = existsSync(peerPath);
+
+  if (!pathExists) {
+    const message = `Deleting orphaned file: ${relPath}`;
+
+    console.warn(message);
+
+    unlinkSync(distFile);
+  }
+}
+
+function cleanupOrphan(distFile: string, srcDir: string, distDir: string) {
+  const relPath = relative(distDir, distFile);
+
+  const hasJsFile = isJsFile(distFile);
+
+  if (hasJsFile) {
+    const tsExtension = '.ts';
+
+    const swappedExtension = swapExtension(relPath, tsExtension);
+
+    const peerPath = join(srcDir, swappedExtension);
+
+    deleteOrphans(peerPath, relPath, distFile);
+  } else {
+    const peerPath = join(srcDir, relPath);
+
+    deleteOrphans(peerPath, relPath, distFile);
+  }
+}
+
+export default function copyFiles(srcDir: string, distDir: string) {
+  const fileList = getFileList(srcDir);
+
+  fileList.forEach((file) => {
+    const hasWebFile = isWebFile(file);
+
+    if (hasWebFile) {
+      syncWebFile(file, srcDir, distDir);
     }
 
-    if (extension === tsExt) {
-      const expectedJs = join(distDir, dirName, `${baseName}${jsExt}`);
-      if (!existsSync(expectedJs)) {
-        console.warn(`Missing JS: ${baseName}${jsExt} (run tsc)`);
-      } else if (srcTime > statSync(expectedJs).mtime.getTime()) {
-        console.warn(`Outdated JS: ${baseName}${jsExt} (re-run tsc)`);
-      }
+    const hasTsFile = isTsFile(file);
+
+    if (hasTsFile) {
+      validateTsCompilation(file, srcDir, distDir);
     }
   });
 
-  if (existsSync(distDir)) {
-    const distFiles = getFileList(distDir);
+  const distPathExists = existsSync(distDir);
 
-    distFiles.forEach((distFile) => {
-      const relativePath = relative(distDir, distFile);
-      const extension = extname(distFile);
-      const dirName = dirname(relativePath);
-      const baseName = basename(distFile, extension);
-
-      let shouldDelete = false;
-
-      if (extension === jsExt) {
-        const peerTsFile = join(srcDir, dirName, `${baseName}${tsExt}`);
-        if (!existsSync(peerTsFile)) shouldDelete = true;
-      } else {
-        const peerSrcFile = join(srcDir, relativePath);
-        if (!existsSync(peerSrcFile)) shouldDelete = true;
-      }
-
-      if (shouldDelete) {
-        console.warn(`Deleting orphaned file: ${relativePath}`);
-        unlinkSync(distFile);
-      }
+  if (distPathExists) {
+    getFileList(distDir).forEach((distFile) => {
+      cleanupOrphan(distFile, srcDir, distDir);
     });
   }
 }
